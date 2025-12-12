@@ -13,9 +13,15 @@ def get_stem_set(directory: Path) -> Set[str]:
         return set()
     
     stems = set()
-    for p in directory.iterdir():
-        if p.is_file() and not p.name.startswith('.'):
-            stems.add(p.stem)
+    try:
+        with os.scandir(directory) as entries:
+            for entry in entries:
+                if entry.is_file() and not entry.name.startswith('.'):
+                    stem, _ = os.path.splitext(entry.name)
+                    stems.add(stem)
+    except OSError as e:
+        print(f"警告: ディレクトリへのアクセス中にエラーが発生しました（一部のファイルが読み込めない可能性があります）: {directory}\n詳細: {e}")
+    
     return stems
 
 def main():
