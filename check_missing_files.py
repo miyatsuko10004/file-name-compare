@@ -1,6 +1,7 @@
 import argparse
 import os
 import shutil
+import unicodedata
 from pathlib import Path
 from typing import Dict, List, Set
 
@@ -9,6 +10,7 @@ def get_stem_map(directory: Path) -> Dict[str, List[str]]:
     指定されたディレクトリ内のファイルをスキャンし、
     {stem: [filename1, filename2, ...]} の辞書を返す。
     隠しファイルは除外する。
+    stem は NFC 正規化を行って比較可能にする。
     """
     if not directory.exists():
         print(f"エラー: ディレクトリが見つかりません: {directory}")
@@ -23,7 +25,14 @@ def get_stem_map(directory: Path) -> Dict[str, List[str]]:
         with os.scandir(directory) as entries:
             for entry in entries:
                 if entry.is_file() and not entry.name.startswith('.'):
-                    stem, _ = os.path.splitext(entry.name)
+                    # ファイル名をNFC正規化してから拡張子を分離
+                    # ※os.path.splitextは正規化前に行うのが一般的だが、
+                    # 比較用キー(stem)を作る目的なので、ここで正規化しても良い。
+                    # ただし元のファイル名(entry.name)は移動用に保持する必要がある。
+                    
+                    normalized_name = unicodedata.normalize('NFC', entry.name)
+                    stem, _ = os.path.splitext(normalized_name)
+                    
                     if stem not in stem_map:
                         stem_map[stem] = []
                     stem_map[stem].append(entry.name)
